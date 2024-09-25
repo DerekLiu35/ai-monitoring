@@ -1,0 +1,9 @@
+mss
+numpy
+PyQt6
+Pillow
+transformers
+python-dotenv
+gTTS
+playsound
+google-generativeai
