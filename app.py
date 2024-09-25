@@ -272,7 +272,7 @@ class DistractionPopup(QDialog):
         self.resize(400, 250)
 
         self.setStyleSheet("""
-            QLabel, QPushButton, {
+            QLabel, QPushButton {
                 color: #FFF5E6;
                 font-size: 20px;
                 font-family: 'Helvetica Neue', sans-serif;
