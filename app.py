@@ -8,9 +8,9 @@ import json
 import datetime
 import shutil
 from collections import defaultdict, deque
-from PyQt6.QtWidgets import QDialog, QApplication, QMainWindow, QPushButton, QHBoxLayout, QVBoxLayout, QWidget, QLabel, QSpinBox, QLineEdit
+from PyQt6.QtWidgets import QDialog, QApplication, QMainWindow, QPushButton, QHBoxLayout, QVBoxLayout, QWidget, QLabel, QSpinBox, QLineEdit, QFrame
 from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer, QRectF
-from PyQt6.QtGui import QPixmap, QImage, QColor, QPainter, QPainterPath, QPen
+from PyQt6.QtGui import QPixmap, QImage, QColor, QPainter, QPainterPath, QPen, QLinearGradient
 from PIL import Image
 from dotenv import load_dotenv
 from gtts import gTTS
@@ -339,7 +339,51 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Distraction Monitor")
-        self.setGeometry(100, 100, 600, 250)
+        self.setGeometry(100, 100, 800, 600)
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #FFF5E6;
+            }
+            QLabel {
+                color: #FF6700;
+                font-size: 20px;
+                font-family: 'Helvetica Neue', sans-serif;
+                font-weight: 300;
+            }
+            QFrame {
+                background-color: rgb(255, 213, 177);
+                border-radius: 10px;
+            }
+            QPushButton {
+                background-color: rgba(255, 103, 0, 200);
+                color: #FFF5E6;
+                font-size: 20px;
+                font-family: 'Helvetica Neue', sans-serif;
+                font-weight: 300;
+                padding: 10px 20px;
+                border-radius: 5px;
+                border: 1px solid rgba(255, 255, 255, 50);
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 103, 0, 220);
+            }
+            QPushButton:pressed {
+                background-color: rgba(255, 103, 0, 180);
+            }
+            QLineEdit, QSpinBox {
+                font-size: 18px;
+                font-family: 'Helvetica Neue', sans-serif;
+                font-weight: 300;
+                padding: 10px;
+                border: 1px solid rgba(255, 103, 0, 100);
+                border-radius: 5px;
+                background-color: rgba(255, 255, 255, 50);
+                color: #FF6700;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                width: 0;
+            }
+        """)
 
         self.config_manager = ConfigManager()
         self.distraction_handler = None
@@ -352,9 +396,15 @@ class MainWindow(QMainWindow):
     def setup_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Interval setting
+        # Settings Frame
+        settings_frame = QFrame()
+        settings_layout = QVBoxLayout(settings_frame)
+        settings_layout.setSpacing(15)
+
         interval_layout = QHBoxLayout()
         interval_label = QLabel("Capture Interval (seconds):")
         self.interval_spinbox = QSpinBox()
@@ -363,38 +413,70 @@ class MainWindow(QMainWindow):
         self.interval_spinbox.valueChanged.connect(self.save_config)
         interval_layout.addWidget(interval_label)
         interval_layout.addWidget(self.interval_spinbox)
-        layout.addLayout(interval_layout)
+        settings_layout.addLayout(interval_layout)
 
-        # Possible activities input
-        possible_layout = QHBoxLayout()
         possible_label = QLabel("Possible Activities:")
         self.possible_input = QLineEdit()
         self.possible_input.setText(", ".join(self.config_manager.config['possible_activities']))
         self.possible_input.textChanged.connect(self.save_config)
-        possible_layout.addWidget(possible_label)
-        possible_layout.addWidget(self.possible_input)
-        layout.addLayout(possible_layout)
+        settings_layout.addWidget(possible_label)
+        settings_layout.addWidget(self.possible_input)
 
-        # Blacklisted activities input
-        blacklisted_layout = QHBoxLayout()
         blacklisted_label = QLabel("Blacklisted Activities:")
         self.blacklisted_input = QLineEdit()
         self.blacklisted_input.setText(", ".join(self.config_manager.config['blacklisted_words']))
         self.blacklisted_input.textChanged.connect(self.save_config)
-        blacklisted_layout.addWidget(blacklisted_label)
-        blacklisted_layout.addWidget(self.blacklisted_input)
-        layout.addLayout(blacklisted_layout)
+        settings_layout.addWidget(blacklisted_label)
+        settings_layout.addWidget(self.blacklisted_input)
+
+        main_layout.addWidget(settings_frame)
+
+        # Control Frame
+        control_frame = QFrame()
+        control_layout = QHBoxLayout(control_frame)
+        control_layout.setSpacing(15)
 
         self.start_button = QPushButton("Start Monitoring")
         self.start_button.clicked.connect(self.toggle_monitoring)
-        layout.addWidget(self.start_button)
+        control_layout.addWidget(self.start_button)
+
+        self.monitoring_status_label = QLabel("Status: Not monitoring")
+        self.monitoring_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.monitoring_status_label.setStyleSheet("background-color: rgb(255, 183, 128);")
+        control_layout.addWidget(self.monitoring_status_label)
+
+        main_layout.addWidget(control_frame)
+
+        # Preview Frame
+        preview_frame = QFrame()
+        preview_layout = QVBoxLayout(preview_frame)
+
+        preview_label = QLabel("Screen Preview")
+        preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        preview_label.setStyleSheet("background-color: rgb(255, 183, 128);")
+        preview_layout.addWidget(preview_label)
 
         self.image_label = QLabel()
-        layout.addWidget(self.image_label)
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setStyleSheet("background-color: rgba(255, 255, 255, 100); border-radius: 10px; padding: 10px;")
+        preview_layout.addWidget(self.image_label)
 
-        # Separate status labels
-        self.monitoring_status_label = QLabel("Status: Not monitoring")
-        layout.addWidget(self.monitoring_status_label)
+        main_layout.addWidget(preview_frame)
+
+        # Set stretch factors
+        main_layout.setStretchFactor(settings_frame, 2)
+        main_layout.setStretchFactor(control_frame, 1)
+        main_layout.setStretchFactor(preview_frame, 4)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        gradient = QLinearGradient(0, 0, 0, self.height())
+        gradient.setColorAt(0, QColor(255, 245, 230))
+        gradient.setColorAt(1, QColor(255, 225, 200))
+
+        painter.fillRect(self.rect(), gradient)
 
     def toggle_monitoring(self):
         if self.start_button.text() == "Start Monitoring":
@@ -423,6 +505,7 @@ class MainWindow(QMainWindow):
             self.distraction_handler = DistractionHandler(self.config_manager, self.capture_thread)
 
             self.start_button.setText("Stop Monitoring")
+            self.start_button.setStyleSheet("background-color: rgba(255, 0, 0, 200);")
             self.monitoring_status_label.setText(f"Status: Monitoring (Interval: {interval}s)")
             self.interval_spinbox.setEnabled(False)
             self.possible_input.setEnabled(False)
@@ -442,6 +525,7 @@ class MainWindow(QMainWindow):
             self.analyzer.wait()
 
         self.start_button.setText("Start Monitoring")
+        self.start_button.setStyleSheet("")  # Reset to default style
         self.monitoring_status_label.setText("Status: Not monitoring")
         self.interval_spinbox.setEnabled(True)
         self.possible_input.setEnabled(True)
@@ -449,7 +533,7 @@ class MainWindow(QMainWindow):
         self.start_button.setEnabled(True)
 
     def process_capture(self, qimage, image_id):
-        scaled_pixmap = QPixmap.fromImage(qimage).scaled(300, 200, Qt.AspectRatioMode.KeepAspectRatio)
+        scaled_pixmap = QPixmap.fromImage(qimage).scaled(700, 400, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         self.image_label.setPixmap(scaled_pixmap)
         if self.capture_thread:
             image_path = self.capture_thread.get_image_path(image_id)
