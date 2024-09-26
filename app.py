@@ -115,6 +115,13 @@ class DistractionAnalyzer(QThread):
                     answer = self.ask_llava(question, self.image_path)
                     print(f"{self.model.upper()} response: {answer}")
                     is_distracted = self.check_distraction(answer)
+                    if is_distracted: # hacky way to reduce false positives, but probably increase false negatives
+                        verify_question = f"Is this the screen of someone who is distracted from their work and doing {answer}? Reply with YES or NO"
+                        verify_answer = self.ask_llava(verify_question, self.image_path)
+                        print(f"Verification response: {verify_answer}")
+                        if "yes" not in verify_answer.lower():
+                            is_distracted = False
+                            answer = "unknown"
                 else:
                     raise ValueError(f"Unsupported model: {self.model}")
                 
@@ -175,6 +182,7 @@ class AudioThread(QThread):
             playsound(self.audio_path)
 
 class StatsTracker:
+    # TODO: clean up the code either use defaultdict or use get method
     def __init__(self, filename='distraction_stats.json'):
         self.filename = filename
         self.stats = self.load_stats()
@@ -183,13 +191,8 @@ class StatsTracker:
     def load_stats(self):
         if os.path.exists(self.filename):
             with open(self.filename, 'r') as f:
-                return json.load(f, object_hook=lambda d: {k: defaultdict(int, v) if k == 'activities' else v for k, v in d.items()})
-        return defaultdict(lambda: {
-            'distractions': 0,
-            'checks': 0,
-            'activities': defaultdict(int),
-            'total_active_time': 0
-        })
+                return json.load(f)
+        return {}
 
     def save_stats(self):
         with open(self.filename, 'w') as f:
@@ -200,15 +203,24 @@ class StatsTracker:
         date_key = now.strftime('%Y-%m-%d')
         hour_key = now.strftime('%Y-%m-%d %H:00')
 
-        for key in [date_key, hour_key]: # Maybe save daily and hourly stats in different files
+        for key in [date_key, hour_key]:
+            if key not in self.stats:
+                self.stats[key] = {
+                    'distractions': 0,
+                    'checks': 0,
+                    'activities': defaultdict(int)
+                }
             self.stats[key]['checks'] += 1
+
             if is_distracted:
                 self.stats[key]['distractions'] += 1
-            self.stats[key]['activities'][activity] += 1
 
+            self.stats[key]['activities'][activity] = self.stats[key]['activities'].get(activity, 0) + 1
+
+            # Update activity period
             if self.prev_update:
                 duration = (now - self.prev_update).total_seconds()
-                self.stats[key]['total_active_time'] += duration
+                self.stats[key]['total_active_time'] = self.stats[key].get('total_active_time', 0) + duration
 
         self.prev_update = now
         self.save_stats()
