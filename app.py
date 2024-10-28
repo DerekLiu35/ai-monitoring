@@ -240,7 +240,7 @@ class ConfigManager:
         except FileNotFoundError:
             print("Configuration file not found. Using default settings.")
             return {
-                "capture_interval": 30,
+                "capture_interval": 10,
                 "possible_activities": ["being productive", "coding", "writing", "learning", "social media", "gaming", "watching livestream"],
                 "blacklisted_words": ["social media", "gaming", "stream"],
                 "notification_sound": "Radar.mp3",
@@ -269,9 +269,9 @@ class DistractionHandler:
         self.distraction_popup.show()
 
     def play_audio_alert(self, message):
-        self.audio_thread = AudioThread(text=message)
+        # self.audio_thread = AudioThread(text=message)
         self.audio_thread2 = AudioThread(audio_path=self.config_manager.config['notification_sound'])
-        self.audio_thread.start()
+        # self.audio_thread.start()
         self.audio_thread2.start()
 
 class DistractionPopup(QDialog):
@@ -380,8 +380,10 @@ class MainWindow(QMainWindow):
                 background-color: rgba(255, 255, 255, 50);
                 color: #FF6700;
             }
-            QSpinBox::up-button, QSpinBox::down-button {
-                width: 0;
+            QLineEdit:disabled, QSpinBox:disabled {
+                background-color: rgb(242, 202, 167);
+                color: rgb(242, 97, 0);
+                border: 1px solid rgba(255, 103, 0, 50);
             }
         """)
 
@@ -450,11 +452,6 @@ class MainWindow(QMainWindow):
         # Preview Frame
         preview_frame = QFrame()
         preview_layout = QVBoxLayout(preview_frame)
-
-        preview_label = QLabel("Screen Preview")
-        preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        preview_label.setStyleSheet("background-color: rgb(255, 183, 128);")
-        preview_layout.addWidget(preview_label)
 
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -550,6 +547,7 @@ class MainWindow(QMainWindow):
         self.stats_tracker.update_stats(activity, is_distracted, interval)
         if is_distracted:
             self.distraction_handler.handle_distraction()
+        self.show() # 
 
     def save_config(self):
         self.config_manager.config['capture_interval'] = self.interval_spinbox.value()
@@ -580,7 +578,7 @@ class MainWindow(QMainWindow):
             child.deleteLater()
 
         super().closeEvent(event)
-        
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
