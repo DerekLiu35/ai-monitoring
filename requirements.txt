@@ -3,5 +3,6 @@ PyQt6
 Pillow
 python-dotenv
 gTTS
+PyObjC
 playsound
 google-generativeai
