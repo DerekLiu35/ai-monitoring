@@ -115,13 +115,13 @@ class DistractionAnalyzer(QThread):
                     answer = self.ask_llava(question, self.image_path)
                     print(f"{self.model.upper()} response: {answer}")
                     is_distracted = self.check_distraction(answer)
-                    if is_distracted: # hacky way to reduce false positives, but probably increase false negatives
-                        verify_question = f"Is this the screen of someone who is distracted from their work and doing {answer}? Reply with YES or NO"
-                        verify_answer = self.ask_llava(verify_question, self.image_path)
-                        print(f"Verification response: {verify_answer}")
-                        if "yes" not in verify_answer.lower():
-                            is_distracted = False
-                            answer = "unknown"
+                    # if is_distracted: # hacky way to reduce false positives, but probably increase false negatives
+                    #     verify_question = f"Is this the screen of someone who is distracted from their work and doing {answer}? Reply with YES or NO"
+                    #     verify_answer = self.ask_llava(verify_question, self.image_path)
+                    #     print(f"Verification response: {verify_answer}")
+                    #     if "yes" not in verify_answer.lower():
+                    #         is_distracted = False
+                    #         answer = "unknown"
                 else:
                     raise ValueError(f"Unsupported model: {self.model}")
                 
